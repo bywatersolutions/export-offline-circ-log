@@ -25,19 +25,14 @@ say
   if $help || !$file;
 
 my @lines = read_file($file) or die "File not found!";
-warn "LINES: " . Data::Dumper::Dumper( \@lines );
 
 my $seen = {};
 foreach my $l (@lines) {
     my @parts      = split( "\t", $l );
-    warn "PARTS: " . Data::Dumper::Dumper( \@parts );
     my $branchcode = pop(@parts);
     chomp $branchcode;
-    warn "BRANCH: $branchcode";
-    my $line       = join( "\t", @parts );
-    warn "LINE: $line";
-    my $filename   = "$output_dir/$branchcode.koc";
-    warn "FILENAME: $filename";
+    my $line     = join( "\t", @parts );
+    my $filename = "$output_dir/$branchcode.koc";
 
     $seen->{$branchcode} = 1;
 
