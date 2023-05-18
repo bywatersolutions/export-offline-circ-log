@@ -98,7 +98,7 @@ if ($import) {
                 AddOfflineOperation(
                     $userid,  $branchcode, $timestamp, $action,
                     $barcode, $cardnumber, $amount
-                ) unless $confirm;
+                ) if $confirm;
             }
 
         }
@@ -133,7 +133,7 @@ if ($process) {
                 cardnumber  => $r->cardnumber,
                 amount      => $r->amount,
             }
-        ) unless $confirm;
+        ) if $confirm;
 
         say "REPORT: $report" if $verbose > 2;
     }
