@@ -44,7 +44,8 @@ GetOptions(
 ) or die("Error in command line arguments\n");
 
 unless ( $dir || $confirm || $process || $import ) {
-    say "bulk_import_koc.pl -d /path/to/dirs [--confirm] [--verbose] [--process] [--import]
+    say
+"bulk_import_koc.pl -d /path/to/dirs [--confirm] [--verbose] [--process] [--import]
 Import ingests files, Process converts *all* pending offline ops into actual checkins and checkouts.
 Directory is assumed to be a set of subdirectories named after the branchcodes, containing nothing but .koc files.
 ";
@@ -66,7 +67,7 @@ if ($import) {
 
         my @files = read_dir( $path, prefix => 1 );
         foreach my $file (@files) {
-            say qq{PROCESSING FILE "$file"};
+            say qq{PROCESSING FILE "$file"} if $verbose;
 
             my @lines = read_file($file);
 
@@ -100,7 +101,6 @@ if ($import) {
                     $barcode, $cardnumber, $amount
                 ) if $confirm;
             }
-
         }
     }
 }
@@ -108,32 +108,38 @@ if ($import) {
 if ($process) {
     my $database = Koha::Database->new();
     my $schema   = $database->schema();
-    my $rs       = $schema->resultset('PendingOfflineOperation')->search();
+    my $rs       = $schema->resultset('PendingOfflineOperation')
+      ->search( {}, { order_by => 'timestamp' } );
 
     while ( my $r = $rs->next ) {
-        say "PROCESSING OFFLINE CIRC: " . $r->id;
+        say "PROCESSING OFFLINE CIRC: " . $r->id if $verbose > 1;
 
         t::lib::Mocks::mock_userenv(
             {
+                borrowernumber => 1,
+                userid         => 'bwssupport',
+                cardnumber     => 'bwssupport',
+                firstname      => 'bws',
+                surname        => 'support',
+                branchcode     => $r->branchcode,
+                branchname     => 'library',
                 flags          => 1,
-                userid         => 0,
-                borrowernumber => 0,
-                branch         => $r->{branchcode},
             }
         );
 
-        my $report = ProcessOfflineOperation(
-            {
-                operationid => $r->operationid,
-                userid      => $r->userid,
-                branchcode  => $r->branchcode,
-                timestamp   => $r->timestamp,
-                action      => $r->action,
-                barcode     => $r->barcode,
-                cardnumber  => $r->cardnumber,
-                amount      => $r->amount,
-            }
-        ) if $confirm;
+        my $data = {
+            operationid => $r->operationid,
+            userid      => $r->userid,
+            branchcode  => $r->branchcode,
+            timestamp   => $r->timestamp,
+            action      => $r->action,
+            barcode     => $r->barcode,
+            cardnumber  => $r->cardnumber,
+            amount      => $r->amount,
+        };
+
+        say "OFFLINE CIRC DATA: " . Data::Dumper::Dumper($data) if $verbose > 2;
+        my $report = ProcessOfflineOperation($data) if $confirm;
 
         say "REPORT: $report" if $verbose > 2;
     }
